@@ -24,3 +24,10 @@ This repo contains a secure, production-grade Kafka cluster using KRaft mode wit
 4. Start services:
    ```bash
    docker-compose up -d
+
+
+
+   chmod +x scripts/create_topic.sh
+
+   chmod +x scripts/health_check.sh
+
