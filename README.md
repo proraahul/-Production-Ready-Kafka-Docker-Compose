@@ -31,3 +31,6 @@ This repo contains a secure, production-grade Kafka cluster using KRaft mode wit
 
    chmod +x scripts/health_check.sh
 
+KAFKA PPT  
+
+https://www.canva.com/design/DAGPEHV8EnI/Yi2j5yeQ6EDsJmS7iAbnwA/edit?continue_in_browser=true
