@@ -1,0 +1,35 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Kafka Overview",
+    "tags": ["kafka"],
+    "panels": [
+      {
+        "type": "graph",
+        "title": "Kafka Messages In Per Second",
+        "targets": [
+          {
+            "expr": "kafka_server_brokertopicmetrics_messagesin_total",
+            "legendFormat": "{{topic}}",
+            "refId": "A"
+          }
+        ],
+        "id": 1
+      },
+      {
+        "type": "graph",
+        "title": "Kafka Bytes In Per Second",
+        "targets": [
+          {
+            "expr": "kafka_server_brokertopicmetrics_bytesin_total",
+            "legendFormat": "{{topic}}",
+            "refId": "B"
+          }
+        ],
+        "id": 2
+      }
+    ],
+    "schemaVersion": 16,
+    "version": 0
+  }
+}
