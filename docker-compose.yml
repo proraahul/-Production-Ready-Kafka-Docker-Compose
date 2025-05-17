@@ -61,7 +61,7 @@ services:
       - KAFKA_CFG_PROCESS_ROLES=broker
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@controller1:9093,2@controller2:9093,3@controller3:9093
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=EXTERNAL:SASL_PLAINTEXT,INTERNAL:SASL_PLAINTEXT
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=EXTERNAL:SASL_SSL,INTERNAL:SASL_SSL
       - KAFKA_CFG_LISTENERS=EXTERNAL://:9092,INTERNAL://:9094
       - KAFKA_CFG_ADVERTISED_LISTENERS=EXTERNAL://localhost:9092,INTERNAL://broker1:9094
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
@@ -69,8 +69,14 @@ services:
       - KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=SCRAM-SHA-512
       - KAFKA_CLIENT_USERS=kafka_user
       - KAFKA_CLIENT_PASSWORDS=StrongKafkaPass
+      - KAFKA_TLS_TYPE=PEM
+      - KAFKA_TLS_CLIENT_AUTH=required
+      - KAFKA_TLS_CERTIFICATE_FILE=/certs/server.crt
+      - KAFKA_TLS_KEY_FILE=/certs/server.key
+      - KAFKA_TLS_TRUSTED_CERTS_FILE=/certs/ca.crt
     volumes:
       - broker1_data:/bitnami
+      - ./certs:/certs
 
   broker2:
     image: bitnami/kafka:latest
@@ -84,7 +90,7 @@ services:
       - KAFKA_CFG_PROCESS_ROLES=broker
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@controller1:9093,2@controller2:9093,3@controller3:9093
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=EXTERNAL:SASL_PLAINTEXT,INTERNAL:SASL_PLAINTEXT
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=EXTERNAL:SASL_SSL,INTERNAL:SASL_SSL
       - KAFKA_CFG_LISTENERS=EXTERNAL://:9092,INTERNAL://:9094
       - KAFKA_CFG_ADVERTISED_LISTENERS=EXTERNAL://localhost:9094,INTERNAL://broker2:9094
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
@@ -92,8 +98,14 @@ services:
       - KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=SCRAM-SHA-512
       - KAFKA_CLIENT_USERS=kafka_user
       - KAFKA_CLIENT_PASSWORDS=StrongKafkaPass
+      - KAFKA_TLS_TYPE=PEM
+      - KAFKA_TLS_CLIENT_AUTH=required
+      - KAFKA_TLS_CERTIFICATE_FILE=/certs/server.crt
+      - KAFKA_TLS_KEY_FILE=/certs/server.key
+      - KAFKA_TLS_TRUSTED_CERTS_FILE=/certs/ca.crt
     volumes:
       - broker2_data:/bitnami
+      - ./certs:/certs
 
   broker3:
     image: bitnami/kafka:latest
@@ -107,7 +119,7 @@ services:
       - KAFKA_CFG_PROCESS_ROLES=broker
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@controller1:9093,2@controller2:9093,3@controller3:9093
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=EXTERNAL:SASL_PLAINTEXT,INTERNAL:SASL_PLAINTEXT
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=EXTERNAL:SASL_SSL,INTERNAL:SASL_SSL
       - KAFKA_CFG_LISTENERS=EXTERNAL://:9092,INTERNAL://:9094
       - KAFKA_CFG_ADVERTISED_LISTENERS=EXTERNAL://localhost:9096,INTERNAL://broker3:9094
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
@@ -115,8 +127,78 @@ services:
       - KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=SCRAM-SHA-512
       - KAFKA_CLIENT_USERS=kafka_user
       - KAFKA_CLIENT_PASSWORDS=StrongKafkaPass
+      - KAFKA_TLS_TYPE=PEM
+      - KAFKA_TLS_CLIENT_AUTH=required
+      - KAFKA_TLS_CERTIFICATE_FILE=/certs/server.crt
+      - KAFKA_TLS_KEY_FILE=/certs/server.key
+      - KAFKA_TLS_TRUSTED_CERTS_FILE=/certs/ca.crt
     volumes:
       - broker3_data:/bitnami
+      - ./certs:/certs
+
+  # ------------------------
+  # Kafka UI
+  # ------------------------
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=kraft-cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=broker1:9094,broker2:9094,broker3:9094
+      - KAFKA_CLUSTERS_0_SECURITY_PROTOCOL=SASL_SSL
+      - KAFKA_CLUSTERS_0_SASL_MECHANISM=SCRAM-SHA-512
+      - KAFKA_CLUSTERS_0_SASL_USERNAME=kafka_user
+      - KAFKA_CLUSTERS_0_SASL_PASSWORD=StrongKafkaPass
+
+  # ------------------------
+  # Kafka Connect
+  # ------------------------
+  kafka-connect:
+    image: bitnami/kafka-connect:latest
+    container_name: kafka-connect
+    ports:
+      - "8083:8083"
+    environment:
+      - KAFKA_CFG_BOOTSTRAP_SERVERS=broker1:9094,broker2:9094,broker3:9094
+      - KAFKA_CONNECT_CONFIGURATION=key.converter=org.apache.kafka.connect.json.JsonConverter,value.converter=org.apache.kafka.connect.json.JsonConverter
+    depends_on:
+      - broker1
+
+  # ------------------------
+  # Schema Registry
+  # ------------------------
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    container_name: schema-registry
+    ports:
+      - "8081:8081"
+    environment:
+      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS=broker1:9094,broker2:9094,broker3:9094
+
+  # ------------------------
+  # Monitoring: Prometheus & Grafana
+  # ------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
 
 volumes:
   controller1_data:
@@ -125,3 +207,4 @@ volumes:
   broker1_data:
   broker2_data:
   broker3_data:
+  grafana_data:
